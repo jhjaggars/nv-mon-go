@@ -66,10 +66,22 @@ func main() {
 
 		mem_info, ret := device.GetMemoryInfo()
 		if ret != nvml.SUCCESS {
-			log.Fatalf("Unable to memory information of device at index %d: %v", 0, nvml.ErrorString(ret))
+			log.Fatalf("Unable to get memory information of device at index %d: %v", 0, nvml.ErrorString(ret))
 		}
 
-		fmt.Printf("gpu,hostname=%s,uuid=%s pclk=%d,mclk=%d,temp=%d,pwr=%d,mem_used=%d,mem_free=%d,mem_total=%d %d\n",
-			hostname, uuid, pclk, mclk, temp, pwr, mem_info.Used, mem_info.Free, mem_info.Total, time.Now().UnixNano())
+		reasons, ret := device.GetCurrentClocksThrottleReasons()
+		if ret != nvml.SUCCESS {
+			log.Fatalf("Unable to get throttle reasons of device at index %d: %v", 0, nvml.ErrorString(ret))
+		}
+
+		hw_break := reasons & nvml.ClocksThrottleReasonHwPowerBrakeSlowdown
+		hw_slowdown := reasons & nvml.ClocksThrottleReasonHwThermalSlowdown
+		hw_thermal := reasons & nvml.ClocksThrottleReasonHwThermalSlowdown
+		sw_thermal := reasons & nvml.ClocksThrottleReasonSwThermalSlowdown
+
+		fmt.Printf("gpu,hostname=%s,uuid=%s pclk=%d,mclk=%d,temp=%d,pwr=%d,mem_used=%d,mem_free=%d,mem_total=%d,hw_break=%d,hw_slowdown=%d,hw_thermal=%d,sw_thermal=%d %d\n",
+			hostname, uuid,
+			pclk, mclk, temp, pwr, mem_info.Used, mem_info.Free, mem_info.Total, hw_break, hw_slowdown, hw_thermal, sw_thermal,
+			time.Now().UnixNano())
 	}
 }
